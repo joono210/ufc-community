@@ -1,0 +1,4 @@
+//rootProject.name = 'ufc-community'
+//include 'backend'
+
+rootProject.name = 'backend'

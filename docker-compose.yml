@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: ufc-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: ufc_db
+      MYSQL_USER: ufc_user
+      MYSQL_PASSWORD: ufc_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/src/main/resources/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - ufc-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: ufc-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - ufc-network
+
+  backend:
+    build: ./backend
+    container_name: ufc-backend
+    restart: always
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ufc_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ufc_user
+      SPRING_DATASOURCE_PASSWORD: ufc_password
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+    ports:
+      - "8080:8080"
+    networks:
+      - ufc-network
+
+  frontend:
+    build: ./frontend
+    container_name: ufc-frontend
+    restart: always
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080/api
+    ports:
+      - "3000:3000"
+    networks:
+      - ufc-network
+
+volumes:
+  mysql_data:
+
+networks:
+  ufc-network:
+    driver: bridge
